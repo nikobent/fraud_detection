@@ -7,7 +7,6 @@ class XGBPreprocessor(BasePreprocessor):
         # Apply base transformation (dropping unnecessary columns)
         df = super().transform(raw_data)
 
-        # XGBoost-specific preprocessing:
         # Convert date strings to datetime objects (assumes "YYYYMMDD" format)
         df["claim_date_occurred"] = pd.to_datetime(df["claim_date_occurred"], format="%Y%m%d", errors="coerce")
         df["claim_date_reported"] = pd.to_datetime(df["claim_date_reported"], format="%Y%m%d", errors="coerce")
