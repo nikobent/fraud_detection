@@ -1,0 +1,10 @@
+drop_columns:
+  - ph_name # due to bias & GDPR reasons
+  - ph_firstname
+  - ph_gender
+  - policy_insured_amount # due to low number of instances
+  - sys_sector # due to 1 unique value
+  - sys_label
+  - sys_process
+  - sys_product
+  - sys_currency_code

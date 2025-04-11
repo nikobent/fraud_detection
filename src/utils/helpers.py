@@ -1,4 +1,15 @@
 import pandas as pd
+import yaml
+import os
+
+def load_config(config_path: str) -> dict:
+    """
+    Load a YAML configuration file and return its contents as a dictionary.
+    """
+    full_path = os.path.join(os.getcwd(), config_path)
+    with open(full_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
 
 def read_csv_data(file_path: str) -> pd.DataFrame:
     """
