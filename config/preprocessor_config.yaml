@@ -8,3 +8,12 @@ drop_columns:
   - sys_process
   - sys_product
   - sys_currency_code
+story_columns:
+  - object_make
+  - object_year_construction
+  - claim_causetype
+  - claim_amount_claimed_total
+  - claim_date_occurred
+  - claim_date_reported
+  - policy_profitability
+  - policy_fleet_flag
