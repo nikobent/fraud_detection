@@ -1,0 +1,2 @@
+path:
+  - models/xgboost/best_xgboost_model.pkl
