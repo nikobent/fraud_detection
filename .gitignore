@@ -175,3 +175,5 @@ cython_debug/
 
 # for memory issues with FAISS
 data/vector_db/
+# for local dev
+trial.py
