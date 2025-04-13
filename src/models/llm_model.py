@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer
 import faiss
 
 # Import the LLM-specific preprocessor
-from preprocessing.llm_preprocessor import LLMPreprocessor
+from src.preprocessing.llm_preprocessor import LLMPreprocessor
 
 # For local model loading using transformers
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline

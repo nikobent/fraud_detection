@@ -1,4 +1,3 @@
-# tests/test_preprocessor.py
 import unittest
 import pandas as pd
 from src.preprocessing.xgb_preprocessor import XGBPreprocessor
@@ -54,7 +53,8 @@ class TestPreprocessors(unittest.TestCase):
 
         # The LLM preprocessor should only keep the narrative columns
         config = load_config(config_path)
-        expected_columns = config.get("drop_columns", [])
+        expected_columns = config.get("story_columns", [])
+
         self.assertListEqual(list(df.columns), expected_columns)
 
         # Test the natural language sentence generation

@@ -1,6 +1,6 @@
 import pandas as pd
 from .base_preprocessor import BasePreprocessor
-from utils.helpers import load_config
+from src.utils.helpers import load_config
 
 
 
