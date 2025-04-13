@@ -1,6 +1,6 @@
 import pandas as pd
 from .base_preprocessor import BasePreprocessor
-from src.utils.helpers import load_config
+from utils.helpers import load_config
 
 
 
@@ -10,7 +10,8 @@ class LLMPreprocessor(BasePreprocessor):
         df = super().transform(raw_data)
         # For LLM processing, we keep only the columns needed to build a narrative.
         config = load_config(config_path)
-        columns_for_narrative = config.get("drop_columns", [])
+
+        columns_for_narrative = config.get("story_columns", [])
         df = df[columns_for_narrative]
         return df
 

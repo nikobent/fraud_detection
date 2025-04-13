@@ -1,5 +1,5 @@
 import pandas as pd
-from src.utils.helpers import load_config
+from utils.helpers import load_config
 
 
 class BasePreprocessor:
@@ -15,5 +15,6 @@ class BasePreprocessor:
         Convert a raw input (dictionary) to a pandas DataFrame and drop columns specified in the config.
         """
         df = pd.DataFrame([raw_data])
-        df = df.drop(columns=self.drop_cols, errors="ignore")
+        if self.drop_cols[0] in df.columns:
+            df = df.drop(columns=self.drop_cols, errors="ignore")
         return df
