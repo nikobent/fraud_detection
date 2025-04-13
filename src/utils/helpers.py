@@ -1,6 +1,8 @@
 import pandas as pd
 import yaml
 import os
+import pickle
+import faiss
 
 def load_config(config_path: str) -> dict:
     """
@@ -20,3 +22,33 @@ def read_csv_data(file_path: str) -> pd.DataFrame:
         return df
     except Exception as e:
         raise Exception(f"Error reading CSV file at {file_path}: {str(e)}")
+
+
+def load_faiss_db(db_dir: str):
+    """
+        load Faiss index and metadata
+    """
+    index_path = os.path.join(db_dir, "claim_index.faiss")
+    metadata_path = os.path.join(db_dir, "claim_metadata.pkl")
+    if not os.path.exists(index_path) or not os.path.exists(metadata_path):
+        raise Exception("FAISS index or metadata not found.")
+    index = faiss.read_index(index_path)
+    with open(metadata_path, "rb") as f:
+        metadata = pickle.load(f)
+    return index, metadata
+
+"""
+def load_model(path:str , model_type:str):
+
+    if model_type == "llm":
+        try:
+            model = LLMFraudModel.from_config("config/llm.yaml")
+        except Exception as e:
+            llm_model = None
+
+    else:
+        try:
+            model = XGBFraudModel.load(path)
+        except Exception as e:
+            model = None
+"""
