@@ -3,7 +3,7 @@ import unittest
 import os
 import yaml
 import pandas as pd
-from src.models.llm_model import LLMFraudModel
+from models.llm_model import LLMFraudModel
 
 
 class DummyFaissIndex:
