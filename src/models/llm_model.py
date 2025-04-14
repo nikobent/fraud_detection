@@ -17,7 +17,7 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 
 
 class LLMFraudModel(FraudModel):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, prompt_type: str == "similar"):
         """
         Initialize the LLMFraudModel using parameters from the configuration.
         This class loads the model locally from a directory (or downloads if not found)
@@ -29,9 +29,10 @@ class LLMFraudModel(FraudModel):
         self.max_new_tokens = config.get("max_new_tokens", 150)
         self.prompt_prefix = config.get("prompt_prefix", "")
         self.num_retrievals = config.get("num_retrievals", 5)
+        self.prompt_type = prompt_type
 
         # Determine local model directory from the model name (e.g., "google/flan-t5-base" → "models/flan-t5-base")
-        local_model_dir = os.path.join("models", self.model_name.split("/")[1])
+        local_model_dir = os.path.join("models", "falcon_llm")
         try:
             if os.path.exists(local_model_dir) and os.path.isdir(local_model_dir):
                 tokenizer = AutoTokenizer.from_pretrained(local_model_dir)
@@ -51,14 +52,21 @@ class LLMFraudModel(FraudModel):
             raise Exception(f"Failed to construct prompt template: {str(e)}")
 
     @classmethod
-    def from_config(cls, config_path: str = "config/llm.yaml"):
+    def from_config(cls, config_path: str = "config/llm.yaml", prompt_type: str = "similar"):
+        """
+        Loads configuration from a YAML file and instantiates the LLMFraudModel.
+
+        Args:
+            config_path (str): Path to the configuration file.
+            prompt_type (str): Strategy to use ("similar" or "fraud").
+        """
         full_path = os.path.join(os.getcwd(), config_path)
         try:
             with open(full_path, "r") as f:
                 config = yaml.safe_load(f)
         except Exception as e:
             raise Exception(f"Failed to load config from {config_path}: {str(e)}")
-        return cls(config)
+        return cls(config, prompt_type=prompt_type)
 
     def build_prompt(self, query: str, global_examples: list, retrieved_examples: list) -> str:
         """
@@ -85,12 +93,23 @@ class LLMFraudModel(FraudModel):
 
     def get_global_examples(self, dataset_path: str, total_examples: int = 5) -> list:
         """
-        Load the dataset and randomly sample a total of 5 global examples.
-        Convert each row to a narrative using LLMPreprocessor and append its label.
+        Load the dataset and sample a total of 5 global examples.
+
+        If prompt_type is "fraud", sample 5 examples where label == 1.
+        Otherwise, sample 5 random examples (regardless of label).
+        Each example is converted to a narrative using LLMPreprocessor and appended with its label.
         """
         try:
             df = pd.read_csv(dataset_path)
-            sample_df = df.sample(n=total_examples) if len(df) >= total_examples else df
+            if self.prompt_type == "fraud":
+                fraud_df = df[df["label"] == 1]
+                # If there are insufficient fraud examples, use all available.
+                sample_df = fraud_df.sample(n=total_examples) if len(fraud_df) >= total_examples else fraud_df
+                strategy = "fraud"
+            else:
+                # "similar" or default: random sampling.
+                sample_df = df.sample(n=total_examples) if len(df) >= total_examples else df
+                strategy = "similar"
             preproc = LLMPreprocessor()
             examples = []
             for _, row in sample_df.iterrows():
@@ -100,6 +119,7 @@ class LLMFraudModel(FraudModel):
                 label = row.get("label", 0)
                 label_str = "Fraud" if int(label) == 1 else "Non-Fraud"
                 examples.append(f"{sentence} (Label: {label_str})")
+            print(f"Using {strategy} strategy for global examples.")
             return examples
         except Exception as e:
             raise Exception(f"Failed to get global examples: {str(e)}")

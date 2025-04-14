@@ -10,10 +10,10 @@ import time
 from sklearn.metrics import f1_score, precision_score, recall_score
 
 from src.pipeline.prediction_pipeline import PredictionPipeline
-from src.models.xgboost_model import XGBFraudModel
+#from src.models.xgboost_model import XGBFraudModel
 from src.models.llm_model import LLMFraudModel
 from src.utils.helpers import load_faiss_db
-from src.preprocessing.xgb_preprocessor import XGBPreprocessor
+#from src.preprocessing.xgb_preprocessor import XGBPreprocessor
 from src.preprocessing.llm_preprocessor import LLMPreprocessor
 
 app = FastAPI(title="Fraud Detection API")
@@ -41,8 +41,9 @@ class PredictionRequest(BaseModel):
 async def score(request: PredictionRequest):
     # convert the input data into dic
     input_data = request.dict()
-    model_type = input_data.pop("model").lower()
+    #model_type = input_data.pop("model").lower()
 
+    """
     if model_type == "xgb":
         # init model class
         try:
@@ -65,57 +66,46 @@ async def score(request: PredictionRequest):
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    elif model_type == "llm":
-        try:
-            print("yo2")
-            llm_model = LLMFraudModel.from_config()
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"LLM model loading error: {e}")
+    elif model_type == "llm":"""
+    try:
+        llm_model = LLMFraudModel.from_config()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM model loading error: {e}")
 
-        # Load FAISS DB only if LLM branch is used.
-        try:
-            print("yo3")
-            faiss_index, metadata = load_faiss_db(DB_DIR)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"FAISS DB loading error: {e}")
+    # Load FAISS DB only if LLM branch is used.
+    try:
+        faiss_index, metadata = load_faiss_db(DB_DIR)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"FAISS DB loading error: {e}")
 
-        try:
-            # Use the LLM preprocessor to convert the full input into a narrative query.
-            print("yo4")
-            preproc = LLMPreprocessor()
-            print("yo5")
-            transformed = preproc.transform(input_data)
-            print("yo6")
-            query = preproc.to_sentence(transformed)
-            data = {"query": query}
-            print("yo7")
-            pipeline_instance = PredictionPipeline(xgb_model=None, llm_model=llm_model, default_model="llm")
-            print("yo8")
-            result = pipeline_instance.predict(
-                data=data,
-                dataset_path=TRAINING_SET,
-                faiss_index=faiss_index,
-                metadata=metadata,
-                k_retrieval=5
-            )
-            print("yo9")
-            return result
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        # Use the LLM preprocessor to convert the full input into a narrative query.
+        preproc = LLMPreprocessor()
+        transformed = preproc.transform(input_data)
+        query = preproc.to_sentence(transformed)
+        data = {"query": query}
+
+        # init the pipeline
+        pipeline_instance = PredictionPipeline(xgb_model=None, llm_model=llm_model, default_model="llm")
+
+        # predict
+        result = pipeline_instance.predict(
+            data=data,
+            dataset_path=TRAINING_SET,
+            faiss_index=faiss_index,
+            metadata=metadata,
+            k_retrieval=5
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     else:
         raise HTTPException(status_code=400, detail="Invalid model specified.")
 
-
+"""
 @app.post("/evaluate")
 async def evaluate(n: int = 500):
-    """
-    Evaluate both models on the first n test instances (default: 500).
-    For each model, compute per-class and average F1-score, precision, and recall,
-    and record the total and average latency.
-    Prints a status update every 50 instances.
-
-    If any error occurs during evaluation, the exception will be raised.
-    """
+    # class that comppares xgboost and LLM - dropped it due to issue with the docker
     # Load the test dataset.
     try:
         test_df = pd.read_csv(TEST_SET)
@@ -136,7 +126,7 @@ async def evaluate(n: int = 500):
     # Loop over each test instance (if any error occurs here, it will propagate)
     for i, (_, row) in enumerate(test_df.iterrows()):
         data = row.to_dict()
-        """
+
         # ----- XGB Prediction -----
         # Load the model and predict (will raise on error)
         xgb_model = XGBFraudModel.load()
@@ -146,7 +136,7 @@ async def evaluate(n: int = 500):
         xgb_latency = time.time() - start_time
         xgb_preds.append(xgb_pred)
         xgb_latencies.append(xgb_latency)
-        """
+
         # ----- LLM Prediction -----
         llm_model = LLMFraudModel.from_config()
         transformed = preproc.transform(data)
@@ -170,7 +160,7 @@ async def evaluate(n: int = 500):
         if (i + 1) % 50 == 0:
             print(f"Processed {i + 1} out of {n} instances")
 
-    """
+
     # Compute metrics for XGB.
     xgb_f1 = f1_score(true_labels, xgb_preds, average=None)
     xgb_precision = precision_score(true_labels, xgb_preds, average=None, zero_division=0)
@@ -185,7 +175,7 @@ async def evaluate(n: int = 500):
         "total_latency": sum(xgb_latencies),
         "avg_latency": np.mean(xgb_latencies)
     }
-    """
+
     # Compute metrics for LLM.
     llm_f1 = f1_score(true_labels, llm_preds, average=None)
     llm_precision = precision_score(true_labels, llm_preds, average=None, zero_division=0)
@@ -204,3 +194,128 @@ async def evaluate(n: int = 500):
     metrics = { "llm": llm_metrics}#"xgb": xgb_metrics,
     print(metrics)
     return metrics
+"""
+
+@app.post("/evaluate_prompt")
+async def evaluate_prompt(n: int = 500):
+    """
+    Evaluate two different LLM prompt strategies on the first n test instances (default 500).
+    One LLM instance is instantiated with prompt_type "similar" (default random global examples)
+    and the other with prompt_type "fraud" (global examples are filtered to fraudulent claims).
+
+    For each model strategy, compute:
+      - Per-class F1-score, precision, and recall.
+      - Macro averaged F1-score, precision, and recall.
+      - Total and average latency.
+
+    Prints a status update every 50 instances.
+    Returns a JSON dictionary with metrics for both prompt strategies.
+    """
+    # Load test set.
+    try:
+        test_df = pd.read_csv(TEST_SET)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading test CSV: {e}")
+
+    if len(test_df) > n:
+        test_df = test_df.iloc[:n]
+    # Assume the ground truth label is in column "sys_fraud" (adjust if needed).
+    true_labels = test_df["sys_fraud"].values
+
+    # Load FAISS index and metadata once (for LLM evaluation).
+    try:
+        faiss_index, metadata = load_faiss_db(DB_DIR)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"FAISS DB loading error: {e}")
+
+    # Instantiate two LLM models (with different prompt strategies).
+    try:
+        # Model with "similar" prompt strategy: default random global examples.
+        llm_similar = LLMFraudModel.from_config("config/llm.yaml", prompt_type="similar")
+        # Model with "fraud" prompt strategy: global examples selected only from fraud cases.
+        llm_fraud = LLMFraudModel.from_config("config/llm.yaml", prompt_type="fraud")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM model loading error: {e}")
+
+    # Instantiate Prediction Pipelines for each strategy.
+    pipeline_similar = PredictionPipeline(xgb_model=None, llm_model=llm_similar, default_model="llm")
+    pipeline_fraud = PredictionPipeline(xgb_model=None, llm_model=llm_fraud, default_model="llm")
+
+    # Instantiate the LLM Preprocessor (used for both).
+    preproc = LLMPreprocessor()
+
+    # Initialize accumulators.
+    similar_preds, fraud_preds = [], []
+    similar_latencies, fraud_latencies = [], []
+
+    # Evaluate over n test instances.
+    for i, (_, row) in enumerate(test_df.iterrows()):
+        data = row.to_dict()
+        # Convert the full input into a narrative query.
+        transformed = preproc.transform(data)
+        query = preproc.to_sentence(transformed)
+        input_data = {"query": query}
+
+        # Evaluate using the "similar" prompt strategy.
+        start_similar = time.time()
+        result_similar = pipeline_similar.predict(
+            data=input_data,
+            dataset_path=TRAINING_SET,
+            faiss_index=faiss_index,
+            metadata=metadata,
+            k_retrieval=5
+        )
+        similar_latency = time.time() - start_similar
+
+        # Evaluate using the "fraud" prompt strategy.
+        start_fraud = time.time()
+        result_fraud = pipeline_fraud.predict(
+            data=input_data,
+            dataset_path=TRAINING_SET,
+            faiss_index=faiss_index,
+            metadata=metadata,
+            k_retrieval=5
+        )
+        fraud_latency = time.time() - start_fraud
+
+        similar_preds.append(result_similar["prediction"])
+        similar_latencies.append(similar_latency)
+        fraud_preds.append(result_fraud["prediction"])
+        fraud_latencies.append(fraud_latency)
+
+        # Print a status update every 50 instances.
+        if (i + 1) % 50 == 0:
+            print(f"Processed {i + 1} out of {n} instances")
+
+    # Compute metrics for the "similar" strategy.
+    similar_f1 = f1_score(true_labels, similar_preds, average=None)
+    similar_precision = precision_score(true_labels, similar_preds, average=None, zero_division=0)
+    similar_recall = recall_score(true_labels, similar_preds, average=None, zero_division=0)
+    similar_metrics = {
+        "f1_score_per_class": similar_f1.tolist(),
+        "precision_per_class": similar_precision.tolist(),
+        "recall_per_class": similar_recall.tolist(),
+        "avg_f1_score": f1_score(true_labels, similar_preds, average="macro"),
+        "avg_precision": precision_score(true_labels, similar_preds, average="macro", zero_division=0),
+        "avg_recall": recall_score(true_labels, similar_preds, average="macro", zero_division=0),
+        "total_latency": sum(similar_latencies),
+        "avg_latency": np.mean(similar_latencies)
+    }
+
+    # Compute metrics for the "fraud" strategy.
+    fraud_f1 = f1_score(true_labels, fraud_preds, average=None)
+    fraud_precision = precision_score(true_labels, fraud_preds, average=None, zero_division=0)
+    fraud_recall = recall_score(true_labels, fraud_preds, average=None, zero_division=0)
+    fraud_metrics = {
+        "f1_score_per_class": fraud_f1.tolist(),
+        "precision_per_class": fraud_precision.tolist(),
+        "recall_per_class": fraud_recall.tolist(),
+        "avg_f1_score": f1_score(true_labels, fraud_preds, average="macro"),
+        "avg_precision": precision_score(true_labels, fraud_preds, average="macro", zero_division=0),
+        "avg_recall": recall_score(true_labels, fraud_preds, average="macro", zero_division=0),
+        "total_latency": sum(fraud_latencies),
+        "avg_latency": np.mean(fraud_latencies)
+    }
+
+    print({"similar": similar_metrics, "fraud": fraud_metrics})
+    return {"similar": similar_metrics, "fraud": fraud_metrics}
