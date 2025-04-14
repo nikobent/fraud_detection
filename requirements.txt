@@ -9,3 +9,4 @@ sentence_transformers==4.0.2
 faiss-cpu==1.10.0
 langchain==0.3.23
 langchain_community==0.3.2
+gradio==4.44.1
